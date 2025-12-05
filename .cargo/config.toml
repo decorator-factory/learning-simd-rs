@@ -1,0 +1,7 @@
+[build]
+rustflags = [
+    "-Ctarget-cpu=native",
+]
+
+[unstable-options]
+build_std = ["core", "alloc", "std"]
