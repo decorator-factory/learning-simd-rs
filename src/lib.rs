@@ -7,5 +7,8 @@
 #![feature(const_array)]
 #![feature(const_trait_impl)]
 #![feature(likely_unlikely)]
+#![feature(maybe_uninit_uninit_array_transpose)]
 
 pub mod count_spaces;
+pub mod base64;
+pub mod utils;

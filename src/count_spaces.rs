@@ -1,4 +1,5 @@
 use core::simd::prelude::*;
+// TODO: looks like it's currently broken...
 
 pub fn count_spaces_std(src: &[u8]) -> u16 {
     let (line, _rest) = src.split_once(|c| *c == b'\n').unwrap();
@@ -182,7 +183,7 @@ mod test {
             b"1 2 3 4 5\n",
             b"1 2 3 4 5 6\n",
             b"1 2 3 4 5 6 7\n",
-            include_bytes!("./count_spaces_long_input.txt"),
+            include_bytes!("../test_data/count_spaces_long_input.txt"),
         ];
         let inputs = inputs.map(pad_bytes);
 

@@ -23,7 +23,7 @@ fn size_for_trhuput(s: &[u8]) -> usize {
 fn criterion_benchmark(c: &mut Criterion) {
     let inputs: [&[u8]; _] = [
         b"1234 567 8123456 78 1234 567 8123456 789 12\n",
-        include_bytes!("../src/count_spaces_long_input.txt"),
+        include_bytes!("../test_data/count_spaces_long_input.txt"),
     ];
     let inputs = inputs.map(|b| (size_for_trhuput(b), pad_bytes(b)));
 

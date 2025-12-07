@@ -9,6 +9,11 @@ opt-level = 3
 codegen-units = 1
 panic = "abort"
 
+[profile.test]
+debug-assertions = true
+debug = "full"
+opt-level = 3
+
 [dependencies]
 
 [dev-dependencies]
@@ -16,4 +21,8 @@ criterion = { version = "0.8" }
 
 [[bench]]
 name = "count_spaces"
+harness = false
+
+[[bench]]
+name = "base64"
 harness = false
