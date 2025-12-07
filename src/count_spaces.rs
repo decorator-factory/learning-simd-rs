@@ -1,5 +1,4 @@
 use core::simd::prelude::*;
-// TODO: looks like it's currently broken...
 
 pub fn count_spaces_std(src: &[u8]) -> u16 {
     let (line, _rest) = src.split_once(|c| *c == b'\n').unwrap();
@@ -62,7 +61,7 @@ const INDICES32: u8x32 = {
     const fn usize_to_u8(i: usize) -> u8 {
         i as u8
     }
-    u8x32::from_array(core::array::from_fn(usize_to_u8))
+    Simd::from_array(core::array::from_fn(usize_to_u8))
 };
 
 ///  # Safety
@@ -71,9 +70,9 @@ pub unsafe fn count_spaces_simd_portable_256(src: &[u8]) -> u16 {
     let mut ptr = src.as_ptr();
     let mut total = 0u16;
 
-    const SPACES: u8x32 = u8x32::splat(0x20);
-    const NEWLINES: u8x32 = u8x32::splat(0x0a);
-    const ZEROS: u8x32 = u8x32::splat(0x0);
+    const SPACES: u8x32 = Simd::splat(0x20);
+    const NEWLINES: u8x32 = Simd::splat(0x0a);
+    const ZEROS: u8x32 = Simd::splat(0x0);
 
     loop {
         // load an entire cache line at once
@@ -90,18 +89,18 @@ pub unsafe fn count_spaces_simd_portable_256(src: &[u8]) -> u16 {
 
         if nl1.any() || nl2.any() {
             if let Some(idx) = nl1.first_set() {
-                let before_newline = INDICES32.simd_lt(u8x32::splat(idx as u8));
+                let before_newline = INDICES32.simd_lt(Simd::splat(idx as u8));
                 total +=
                     before_newline.select(w1, ZEROS).simd_eq(SPACES).to_bitmask().count_ones()
                         as u16;
                 return total;
             } else {
-                let idx = unsafe { nl2.first_set().unwrap_unchecked() };
-                let before_newline = INDICES32.simd_lt(u8x32::splat(idx as u8));
+                let idx = nl2.first_set().unwrap();
+                let before_newline = INDICES32.simd_lt(Simd::splat(idx as u8));
                 total +=
                     before_newline.select(w2, ZEROS).simd_eq(SPACES).to_bitmask().count_ones()
                         as u16;
-                return total;
+                return total + t1; // important: need to account for spaces from the first line
             }
         }
 
@@ -114,7 +113,7 @@ const INDICES64: u8x64 = {
     const fn usize_to_u8(i: usize) -> u8 {
         i as u8
     }
-    u8x64::from_array(core::array::from_fn(usize_to_u8))
+    Simd::from_array(core::array::from_fn(usize_to_u8))
 };
 
 ///  # Safety
@@ -123,25 +122,24 @@ pub unsafe fn count_spaces_simd_portable_512(src: &[u8]) -> u16 {
     let mut ptr = src.as_ptr();
     let mut total = 0u16;
 
-    const SPACES: u8x64 = u8x64::splat(0x20);
-    const NEWLINES: u8x64 = u8x64::splat(0x0a);
-    const ZEROS: u8x64 = u8x64::splat(0x0);
-    loop {
-        // load an entire cache line at once
-        let bunch = u8x64::from_array(unsafe { *ptr.cast() });
+    const SPACES: u8x64 = Simd::splat(0x20);
+    const NEWLINES: u8x64 = Simd::splat(0x0a);
+    const ZEROS: u8x64 = Simd::splat(0x0);
 
-        let nl = bunch.simd_eq(NEWLINES);
+    loop {
+        let w = u8x64::from_array(unsafe { *ptr.cast() });
+        ptr = unsafe { ptr.add(64) };
+
+        let nl = w.simd_eq(NEWLINES);
 
         if let Some(idx) = nl.first_set() {
-            let before_newline = INDICES64.simd_lt(u8x64::splat(idx as u8));
-            total +=
-                before_newline.select(bunch, ZEROS).simd_eq(SPACES).to_bitmask().count_ones()
-                    as u16;
+            let before_newline = INDICES64.simd_lt(Simd::splat(idx as u8));
+            total += before_newline.select(w, ZEROS).simd_eq(SPACES).to_bitmask().count_ones()
+                as u16;
             return total;
         }
-
-        total += bunch.simd_eq(SPACES).to_bitmask().count_ones() as u16;
-        ptr = unsafe { ptr.add(64) };
+        let space_count = w.simd_eq(SPACES).to_bitmask().count_ones() as u16;
+        total += space_count;
     }
 }
 
