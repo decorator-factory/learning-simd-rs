@@ -1,0 +1,25 @@
+@techs MMX,SSE_ALL,AVX_ALL
+
+@pattern _mm[256]_abs_[e]pi{8,16,32}
+Compute absolute values (turn negatives into positives).
+Store unsigned results.
+
+@pattern _mm[256]_add_[e]pi{8,16,32,64}
+Add vectors of integers elementwise.
+Arithmetic works out the same for both signed and unsigned.
+
+@pattern _mm[256]_add_p{s,d}
+Add vectors of f32/f64 elementwise.
+
+@pattern _mm_add_s{s,d} (a, b)
+Interpret the lower bits of `a` and `b` as an f32/f64 and move them into the lower bits of `dst`.
+Move the other bits of `a` to the corresponding bits of `dst`.
+
+@pattern _m_padd[u][s][w,b,d]
+Oldschool MMX instructions. Use `_mm_add_...` instructions instead
+
+@pattern _m_pmaddwd
+Oldschool MMX instruction. Use `_mm_madd_pi16` instead.
+
+# TODO:
+# @exhaust .*(?!<lo)add.*
