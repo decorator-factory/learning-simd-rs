@@ -1,25 +1,116 @@
 @techs MMX,SSE_ALL,AVX_ALL
 
+# This document is heavily based (sometimes paraphrased)
+
+
+#<Addition>
+
 @pattern _mm[256]_abs_[e]pi{8,16,32}
 Compute absolute values (turn negatives into positives).
 Store unsigned results.
+
 
 @pattern _mm[256]_add_[e]pi{8,16,32,64}
 Add vectors of integers elementwise.
 Arithmetic works out the same for both signed and unsigned.
 
+
 @pattern _mm[256]_add_p{s,d}
 Add vectors of f32/f64 elementwise.
+
+
+@pattern _mm[256]_addsub_p{s,d}
+Alternatively add and subtract elements from two f32/f64 vectors.
+
 
 @pattern _mm_add_s{s,d} (a, b)
 Interpret the lower bits of `a` and `b` as an f32/f64 and move them into the lower bits of `dst`.
 Move the other bits of `a` to the corresponding bits of `dst`.
 
-@pattern _m_padd[u][s][w,b,d]
+
+@pattern _mm[256]_adds_ep{i,u}{8,16},_mm_adds_p{i,u}{8,16}
+Add vectors of signed/unsigned integers elementwise using saturation.
+
+
+# Fused-multiply-add
+
+@pattern _mm[256]_fmadd_p{s,d} (a, b, c)
+"Fused multiply-add". Add up vectors `a` and `b` and multiply the sum elementwise by `c`.
+
+
+@pattern _mm[256]_fnmadd_p{s,d}
+Like "_mm[256]_fmadd_p{s,d}", but negates the result.
+
+
+@pattern _mm[256]_fmaddsub_p{s,d} (a, b, c)
+Combination of `_mm[256]_fmadd_p{s,d}` and `_mm[256]_addsub_p{s,sd`.
+Multiply `a * b` elementwise, then alternatively add/sub intermediate result with `c`.
+
+
+@pattern _mm[256]_fmsubadd_p{s,d} (a, b, c)
+Like `_mm[256]_fmaddsub_p{s,d}`, but which elements are added/subbed is swapped.
+
+
+@pattern _mm_f[n]madd_s{s,d} (a, b, c)
+A combo of `_mm_fmadd_p{s,d}` and `mm_add_s{s,d}`.
+Perform floating FusedMultiplyAdd on the lower 32/64 bits of `a`, `b`, `c`;
+then copy the upper bits of `a` unchanged.
+
+For `[n]`, see `_mm[256]_fnmadd_p{s,d}`.
+
+
+# Horizontal addition fns
+
+
+@pattern _mm_hadd_p{s,d,i{16,32}},_mm[256]_hadd_{ps,pd,epi{16,32}} (a, b)
+Horizontally add adjacent pairs of elements in `a` and `b` and store
+the packed result in `dst`.
+
+e.g. `[a,b,c,d] + [e,f,g,h] -> [(a+b),(c+d),(e+f),(g+h)]`
+
+
+@pattern _mm[256]_hadds_[e]pi16
+Like `_mm_hadd_.*`, but adds using saturation.
+For some reason only defined for 16-bit integers.
+
+
+@pattern _mm_madd_pi16,_mm[256]_madd_epi16 (a, b)
+Multiply packed signed 16-bit integers in `a` and `b`, producing intermediate signed 32-bit integers.
+Horizontally add adjacent pairs of intermediate 32-bit integers, and pack the results in `dst`.
+
+
+@pattern _mm_maddubs_pi16,_mm[256]_maddubs_epi16 (a, b)
+Vertically multiply each <b>unsigned</b> 8-bit integer from `a` with the corresponding
+<b>signed</b> 8-bit integer from `b`, producing intermediate signed 16-bit integers.
+Horizontally add adjacent pairs of intermediate <b>signed</b> 16-bit integers,
+and pack the <b>saturated</b> results in `dst`.
+
+
+## 52-bit stuff
+
+@pattern _mm[256]_madd52{lo,hi}_[avx_]epu64 (a, b, c)
+Multiply packed unsigned 52-bit integers in each 64-bit element of `b` and `c`
+to form a 104-bit intermediate result.
+Add the (low/high) 52-bit unsigned integer from the intermediate result with the
+corresponding unsigned 64-bit integer in `a`, and store the results in `dst`.
+
+It's some cryptography stuff. You're just as confused as I am.
+
+
+## Deprecated addition fns
+
+@pattern +dpx _m_padd{{b,d,w},[u]s{b,w}}
 Oldschool MMX instructions. Use `_mm_add_...` instructions instead
 
-@pattern _m_pmaddwd
+
+@pattern +dpx _m_pmaddwd
 Oldschool MMX instruction. Use `_mm_madd_pi16` instead.
 
-# TODO:
-# @exhaust .*(?!<lo)add.*
+
+@pattern +dpx _mm_add_si64
+Silly instruction to add two `u64`/`i64`s. Just use `+`.
+
+
+@exhaust .*(?<!lo)add.*
+
+#</Addition>
