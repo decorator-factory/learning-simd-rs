@@ -14,7 +14,7 @@ pub unsafe fn count_spaces_simd_novec(src: &[u8]) -> u16 {
     let mut ptr = src.as_ptr();
     let mut total = 0u16;
     loop {
-        let word: u64 = unsafe { *ptr.cast() };
+        let word: u64 = unsafe { core::ptr::read_unaligned(ptr.cast()) };
         let nl = word & 0x20202020_20202020;
         if nl != 0x20202020_20202020 {
             let tz = (nl ^ 0x20202020_20202020).trailing_zeros() - 5;
@@ -37,7 +37,7 @@ pub unsafe fn count_spaces_simd_novec_x8(src: &[u8]) -> u16 {
     let mut total = 0u16;
     loop {
         // load an entire cache line at once
-        let words: [u64; 8] = unsafe { *ptr.cast() };
+        let words: [u64; 8] = unsafe { core::ptr::read_unaligned(ptr.cast()) };
         let nls = words.map(|word| word & 0x20202020_20202020);
         let totals = words.map(|word| 8 - ((word & 0x10101010_10101010).count_ones() as u16));
 
@@ -76,9 +76,9 @@ pub unsafe fn count_spaces_simd_portable_256(src: &[u8]) -> u16 {
 
     loop {
         // load an entire cache line at once
-        let w1 = u8x32::from_array(unsafe { *ptr.cast() });
+        let w1 = u8x32::from_array(unsafe { core::ptr::read_unaligned(ptr.cast()) });
         ptr = unsafe { ptr.add(32) };
-        let w2 = u8x32::from_array(unsafe { *ptr.cast() });
+        let w2 = u8x32::from_array(unsafe { core::ptr::read_unaligned(ptr.cast()) });
         ptr = unsafe { ptr.add(32) };
 
         let nl1 = w1.simd_eq(NEWLINES);
@@ -127,7 +127,7 @@ pub unsafe fn count_spaces_simd_portable_512(src: &[u8]) -> u16 {
     const ZEROS: u8x64 = Simd::splat(0x0);
 
     loop {
-        let w = u8x64::from_array(unsafe { *ptr.cast() });
+        let w = u8x64::from_array(unsafe { core::ptr::read_unaligned(ptr.cast()) });
         ptr = unsafe { ptr.add(64) };
 
         let nl = w.simd_eq(NEWLINES);
